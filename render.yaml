@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: kittu-birthday-app
+    runtime: static
+    buildCommand: npm run build
+    publishDir: build
+    envVars:
+      - key: NODE_ENV
+        value: production
