@@ -182,6 +182,57 @@ const App = () => {
     }
   }, []);
 
+  // Prevent copying, right-click, and other content protection
+  useEffect(() => {
+    const preventDefault = (e) => {
+      e.preventDefault();
+      return false;
+    };
+
+    const preventCopy = (e) => {
+      // Allow copy in input fields and textareas
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') {
+        return true;
+      }
+      e.preventDefault();
+      return false;
+    };
+
+    const preventKeys = (e) => {
+      // Prevent Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+S, Ctrl+P, F12, Ctrl+Shift+I, Ctrl+U
+      if (
+        (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'a' || e.key === 's' || e.key === 'p' || e.key === 'u')) ||
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'J')
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('contextmenu', preventDefault, false);
+    document.addEventListener('copy', preventCopy, false);
+    document.addEventListener('cut', preventCopy, false);
+    document.addEventListener('paste', preventCopy, false);
+    document.addEventListener('keydown', preventKeys, false);
+    document.addEventListener('selectstart', preventDefault, false);
+    document.addEventListener('dragstart', preventDefault, false);
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('contextmenu', preventDefault, false);
+      document.removeEventListener('copy', preventCopy, false);
+      document.removeEventListener('cut', preventCopy, false);
+      document.removeEventListener('paste', preventCopy, false);
+      document.removeEventListener('keydown', preventKeys, false);
+      document.removeEventListener('selectstart', preventDefault, false);
+      document.removeEventListener('dragstart', preventDefault, false);
+    };
+  }, []);
+
   // --- Parallax Effects ---
   const { scrollYProgress } = useScroll();
   const scaleProgress = useTransform(scrollYProgress, [0, 0.2], [1, 1.1]);
