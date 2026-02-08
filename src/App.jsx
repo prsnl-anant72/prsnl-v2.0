@@ -107,6 +107,7 @@ const App = () => {
   const [secondLetterOpen, setSecondLetterOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioLoaded, setAudioLoaded] = useState(false);
   const audioRef = useRef(null);
 
   // Check if love letters should be unlocked (Feb 9, 2026 or later)
@@ -140,6 +141,45 @@ const App = () => {
       setTimeout(() => setShowConfetti(false), 3000);
     }, 2000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Setup audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.4;
+      audioRef.current.loop = true;
+
+      const handleCanPlay = () => {
+        setAudioLoaded(true);
+      };
+
+      const handleLoadedData = () => {
+        console.log('Audio loaded successfully');
+      };
+
+      const handleError = (e) => {
+        console.log('Audio loading error:', e);
+        setAudioLoaded(false);
+      };
+
+      const handleEnded = () => {
+        setIsPlaying(false);
+      };
+
+      audioRef.current.addEventListener('canplay', handleCanPlay);
+      audioRef.current.addEventListener('loadeddata', handleLoadedData);
+      audioRef.current.addEventListener('error', handleError);
+      audioRef.current.addEventListener('ended', handleEnded);
+
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.removeEventListener('canplay', handleCanPlay);
+          audioRef.current.removeEventListener('loadeddata', handleLoadedData);
+          audioRef.current.removeEventListener('error', handleError);
+          audioRef.current.removeEventListener('ended', handleEnded);
+        }
+      };
+    }
   }, []);
 
   // --- Parallax Effects ---
@@ -1002,29 +1042,59 @@ const App = () => {
         }}
         whileTap={{ scale: 0.95 }}
         onClick={async () => {
-          if (audioRef.current) {
+          if (audioRef.current && audioLoaded) {
             try {
               if (isPlaying) {
                 audioRef.current.pause();
                 setIsPlaying(false);
               } else {
-                await audioRef.current.play();
-                setIsPlaying(true);
+                const playPromise = audioRef.current.play();
+                if (playPromise !== undefined) {
+                  await playPromise;
+                  setIsPlaying(true);
+                }
               }
             } catch (error) {
               console.log('Audio play failed:', error);
+              setIsPlaying(false);
             }
+          } else {
+            console.log('Audio not ready yet');
           }
         }}
-        className="fixed bottom-8 left-8 z-50 w-12 h-12 bg-black/80 backdrop-blur-lg border border-yellow-500/30 rounded-full flex items-center justify-center shadow-lg cursor-pointer group"
+        className={`fixed bottom-8 left-8 z-50 w-12 h-12 bg-black/80 backdrop-blur-lg border rounded-full flex items-center justify-center shadow-lg cursor-pointer group ${
+          audioLoaded ? 'border-yellow-500/30' : 'border-gray-500/30'
+        }`}
+        disabled={!audioLoaded}
       >
-        <span className="text-yellow-400 text-lg group-hover:text-yellow-300 transition-colors">
+        <span className={`text-lg transition-colors ${
+          audioLoaded
+            ? 'text-yellow-400 group-hover:text-yellow-300'
+            : 'text-gray-500'
+        }`}>
           {isPlaying ? '⏸️' : '🎵'}
         </span>
+
+        {/* Tooltip */}
+        <motion.div
+          initial={{ opacity: 0, x: 10 }}
+          whileHover={{ opacity: 1, x: 0 }}
+          className="absolute left-14 top-1/2 -translate-y-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          {!audioLoaded ? 'Loading music...' : (isPlaying ? 'Pause music' : 'Play music')}
+        </motion.div>
       </motion.button>
 
       {/* Background Audio */}
-      <audio ref={audioRef} src="/her.mp3" preload="auto" />
+      <audio
+        ref={audioRef}
+        src="/her.mp3"
+        preload="metadata"
+        loop
+        onCanPlay={() => setAudioLoaded(true)}
+        onLoadedData={() => console.log('Audio loaded')}
+        onError={(e) => console.log('Audio error:', e)}
+      />
     </div>
   );
 };
