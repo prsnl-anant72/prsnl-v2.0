@@ -106,7 +106,7 @@ const App = () => {
   const [letterOpen, setLetterOpen] = useState(false);
   const [secondLetterOpen, setSecondLetterOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef(null);
 
   // Check if love letters should be unlocked (Feb 9, 2026 or later)
@@ -138,25 +138,8 @@ const App = () => {
       setLoading(false);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
-
-      // Start background music after loading
-      if (audioRef.current) {
-        audioRef.current.volume = 0.3;
-        audioRef.current.loop = true;
-        audioRef.current.play().catch(e => console.log('Audio autoplay blocked'));
-      }
     }, 2000);
     return () => clearInterval(timer);
-  }, []);
-
-  // Mouse tracking for interactive effects
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   // --- Parallax Effects ---
@@ -170,7 +153,6 @@ const App = () => {
   return (
     <div className="bg-[#050505] text-white font-sans selection:bg-yellow-500/30 relative overflow-hidden">
       <GrainOverlay />
-      <CustomCursor />
 
       {/* Confetti Effect */}
       <AnimatePresence>
@@ -208,26 +190,10 @@ const App = () => {
         )}
       </AnimatePresence>
 
-      {/* Interactive Background Orbs */}
+      {/* Subtle Background Glow */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <motion.div
-          animate={{
-            x: mousePosition.x * 0.02,
-            y: mousePosition.y * 0.02,
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 left-1/4 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            x: mousePosition.x * -0.01,
-            y: mousePosition.y * -0.01,
-            scale: [1.1, 1, 1.1]
-          }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/3 rounded-full blur-3xl"
-        />
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-yellow-500/3 rounded-full blur-3xl opacity-30" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/2 rounded-full blur-3xl opacity-20" />
       </div>
 
       {/* Enhanced Navigation */}
@@ -302,31 +268,9 @@ const App = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#050505]/50 to-[#050505]" />
 
-          {/* Floating geometric shapes */}
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              animate={{
-                y: [0, -20, 0],
-                rotate: [0, 360],
-                scale: [0.8, 1.2, 0.8]
-              }}
-              transition={{
-                duration: 4 + Math.random() * 2,
-                repeat: Infinity,
-                delay: Math.random() * 3,
-                ease: "easeInOut"
-              }}
-              className={`absolute w-4 h-4 ${
-                i % 3 === 0 ? 'bg-yellow-400/20' :
-                i % 3 === 1 ? 'bg-pink-400/15' : 'bg-purple-400/20'
-              } ${i % 2 === 0 ? 'rounded-full' : 'rotate-45'}`}
-              style={{
-                left: `${20 + Math.random() * 60}%`,
-                top: `${20 + Math.random() * 60}%`
-              }}
-            />
-          ))}
+          {/* Simple corner accents */}
+          <div className="absolute top-10 left-10 w-2 h-2 bg-yellow-400/30 rounded-full" />
+          <div className="absolute bottom-10 right-10 w-3 h-3 bg-pink-400/20 rounded-full" />
         </motion.div>
 
         <div className="relative z-10 text-center space-y-4 px-4">
@@ -1012,31 +956,6 @@ const App = () => {
               Forever in Love 💕
             </motion.div>
 
-            {/* Floating hearts around signature */}
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                animate={{
-                  y: [0, -15, 0],
-                  x: [0, Math.sin(i) * 10, 0],
-                  opacity: [0.3, 0.7, 0.3],
-                  scale: [0.8, 1, 0.8]
-                }}
-                transition={{
-                  duration: 3 + Math.random(),
-                  repeat: Infinity,
-                  delay: Math.random() * 2,
-                  ease: "easeInOut"
-                }}
-                className="absolute text-pink-400/40 text-sm"
-                style={{
-                  left: `${20 + Math.random() * 60}%`,
-                  top: `${-10 + Math.random() * 20}%`
-                }}
-              >
-                💖
-              </motion.div>
-            ))}
           </motion.div>
         </div>
       </footer>
@@ -1072,7 +991,7 @@ const App = () => {
         </motion.div>
       </motion.button>
 
-      {/* Interactive Background Music Control */}
+      {/* Background Music Control */}
       <motion.button
         initial={{ opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1082,24 +1001,26 @@ const App = () => {
           boxShadow: "0 0 20px rgba(229, 193, 0, 0.5)"
         }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => {
+        onClick={async () => {
           if (audioRef.current) {
-            if (audioRef.current.paused) {
-              audioRef.current.play();
-            } else {
-              audioRef.current.pause();
+            try {
+              if (isPlaying) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+              } else {
+                await audioRef.current.play();
+                setIsPlaying(true);
+              }
+            } catch (error) {
+              console.log('Audio play failed:', error);
             }
           }
         }}
-        className="fixed bottom-8 left-8 z-50 w-10 h-10 bg-black/80 backdrop-blur-lg border border-yellow-500/30 rounded-full flex items-center justify-center shadow-lg cursor-pointer group"
+        className="fixed bottom-8 left-8 z-50 w-12 h-12 bg-black/80 backdrop-blur-lg border border-yellow-500/30 rounded-full flex items-center justify-center shadow-lg cursor-pointer group"
       >
-        <motion.span
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="text-yellow-400 text-sm group-hover:text-yellow-300 transition-colors"
-        >
-          🎵
-        </motion.span>
+        <span className="text-yellow-400 text-lg group-hover:text-yellow-300 transition-colors">
+          {isPlaying ? '⏸️' : '🎵'}
+        </span>
       </motion.button>
 
       {/* Background Audio */}
@@ -1129,6 +1050,8 @@ const Stat = ({ label, value }) => (
 );
 
 const GalleryItem = ({ index, photo, onClick }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.9 }}
@@ -1141,87 +1064,64 @@ const GalleryItem = ({ index, photo, onClick }) => {
         damping: 15
       }}
       whileHover={{
-        scale: 1.03,
-        y: -5,
-        transition: { duration: 0.3 }
+        scale: 1.02,
+        y: -3,
+        transition: { duration: 0.2 }
       }}
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.98 }}
       className="relative group cursor-pointer overflow-hidden rounded-lg shadow-lg"
       onClick={onClick}
     >
-      {/* Image container with enhanced effects */}
-      <div className="relative overflow-hidden rounded-lg">
-        <motion.img
+      {/* Image container with optimized loading */}
+      <div className="relative overflow-hidden rounded-lg bg-gray-900">
+        {!imageLoaded && (
+          <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center">
+            <Camera className="text-gray-600" size={24} />
+          </div>
+        )}
+        <img
           src={photo}
           alt={`Memory ${index}`}
-          className="w-full h-auto grayscale transition-all duration-700 group-hover:grayscale-0"
+          className={`w-full h-auto transition-all duration-500 group-hover:scale-105 ${
+            imageLoaded ? 'grayscale group-hover:grayscale-0' : 'opacity-0'
+          }`}
           loading="lazy"
-          whileHover={{ scale: 1.1 }}
-          transition={{ duration: 0.5 }}
+          onLoad={() => setImageLoaded(true)}
         />
 
-        {/* Multiple overlay layers */}
+        {/* Simple overlay */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"
+        />
+
         <motion.div
           initial={{ opacity: 0 }}
           whileHover={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"
-        />
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          whileHover={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="absolute inset-0 bg-black/30 flex items-center justify-center"
+          className="absolute inset-0 bg-black/20 flex items-center justify-center"
         >
-          <motion.div
-            animate={{
-              scale: [1, 1.1, 1],
-              rotate: [0, 5, -5, 0]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
-            <Camera className="text-white opacity-80 drop-shadow-lg" size={24} />
-          </motion.div>
+          <Camera className="text-white opacity-70" size={20} />
         </motion.div>
 
-        {/* Corner accent */}
+        {/* Simple corner accent */}
         <motion.div
-          initial={{ opacity: 0, scale: 0 }}
-          whileHover={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1, duration: 0.3 }}
-          className="absolute top-3 right-3 w-8 h-8 bg-yellow-500/80 rounded-full flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="absolute top-2 right-2 w-6 h-6 bg-yellow-500/80 rounded-full flex items-center justify-center"
         >
           <span className="text-black text-xs font-bold">+</span>
         </motion.div>
-
-        {/* Animated border */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileHover={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="absolute inset-0 rounded-lg border-2 border-yellow-500/50"
-          animate={{
-            borderColor: [
-              "rgba(229, 193, 0, 0.3)",
-              "rgba(229, 193, 0, 0.7)",
-              "rgba(229, 193, 0, 0.3)"
-            ]
-          }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        />
       </div>
 
-      {/* Hover info */}
+      {/* Simple hover info */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 5 }}
         whileHover={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-3 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"
+        className="absolute bottom-0 left-0 right-0 bg-black/70 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform duration-200"
       >
         <p className="text-white text-xs font-medium">Memory #{index + 1}</p>
       </motion.div>
@@ -1255,24 +1155,5 @@ const GrainOverlay = () => (
   </div>
 );
 
-const CustomCursor = () => {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  
-  useEffect(() => {
-    const handleMove = (e) => setPosition({ x: e.clientX, y: e.clientY });
-    window.addEventListener('mousemove', handleMove);
-    return () => window.removeEventListener('mousemove', handleMove);
-  }, []);
-
-  return (
-    <motion.div 
-      animate={{ x: position.x - 20, y: position.y - 20 }}
-      transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.5 }}
-      className="fixed top-0 left-0 w-10 h-10 border border-yellow-500/50 rounded-full pointer-events-none z-[9999] hidden md:flex items-center justify-center"
-    >
-      <div className="w-1 h-1 bg-yellow-500 rounded-full" />
-    </motion.div>
-  );
-};
 
 export default App;
