@@ -874,7 +874,7 @@ const App = () => {
                         <p className="text-base text-neutral-200 font-light leading-relaxed">
                           Dear Kittu, go upstairs...<br />
                           <span className="text-lg font-medium text-yellow-400 mt-2 block">
-                            there's a surprise waiting for you in your Harshita's Room! 🎁✨
+                            there's a surprise waiting for you in Harshita's Room! 🎁✨
                           </span>
                         </p>
 
